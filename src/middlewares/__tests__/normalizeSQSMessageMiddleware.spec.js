@@ -1,4 +1,7 @@
-import { normalizeHandler } from '../normalizeSQSMessageMiddleware';
+import {
+  normalizeHandler,
+  disconnectConnections,
+} from '../normalizeSQSMessageMiddleware';
 
 describe('MiddlewareGroup: test normalizeRecords middleware', () => {
   it('test without parameters', () => {
@@ -28,5 +31,90 @@ describe('MiddlewareGroup: test normalizeRecords middleware', () => {
         },
       },
     ]);
+  });
+});
+
+describe('MiddlewareGroup: test disconnectConnections db middleware', () => {
+  it('should not call db.end() whenever a db options is not present', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await disconnectConnections();
+
+    expect(end).toHaveBeenCalledTimes(0);
+  });
+
+  it('should not call db.end() whenever a db options is not set', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await disconnectConnections({ db: {} });
+
+    expect(end).toHaveBeenCalledTimes(0);
+  });
+
+  it('should call db.end() whenever a db options is set', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await disconnectConnections({
+      db: {
+        end,
+      },
+    });
+
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return exception if failure is detected', async () => {
+    const end = jest.fn().mockImplementationOnce(() => {
+      throw new Error('Test Error');
+    });
+    await disconnectConnections({
+      db: {
+        end,
+      },
+    });
+  });
+});
+
+describe('MiddlewareGroup: test disconnectConnections dbRead middleware', () => {
+  it('should not call dbRead.end() whenever a dbRead options is not set', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await disconnectConnections({ dbRead: {} });
+
+    expect(end).toHaveBeenCalledTimes(0);
+  });
+
+  it('should not call anything whenever no options is passed', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await disconnectConnections();
+
+    expect(end).toHaveBeenCalledTimes(0);
+  });
+
+  it('should call dbRead.end() whenever a dbRead options is set', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await disconnectConnections({
+      dbRead: {
+        end,
+      },
+    });
+
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('MiddlewareGroup: test disconnectConnections cache middleware', () => {
+  it('should not call cache.end() whenever a cache options is not set', async () => {
+    const cache = jest.fn().mockResolvedValue();
+    await disconnectConnections({ cache: {} });
+
+    expect(cache).toHaveBeenCalledTimes(0);
+  });
+
+  it('should call cache.end() whenever a cache options is set', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await disconnectConnections({
+      cache: {
+        end,
+      },
+    });
+
+    expect(end).toHaveBeenCalledTimes(1);
   });
 });

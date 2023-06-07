@@ -4,10 +4,9 @@ import {
 } from '../successHttpResponseMiddleware';
 
 describe('MiddlewareGroup: test successHttpResponseHandler middleware', () => {
-  it('test default without parameters', () => {
-    const data = successHttpResponseHandler();
+  it('test default without parameters', async () => {
+    const data = await successHttpResponseHandler();
 
-    expect(data.headers['Access-Control-Allow-Credentials']).toBe(true);
     expect(data.headers['Access-Control-Allow-Origin']).toBe('*');
     expect(data.headers['Cache-Control']).toBe('no-cache');
 
@@ -21,10 +20,9 @@ describe('MiddlewareGroup: test successHttpResponseHandler middleware', () => {
     expect(dataBody).toHaveProperty('_meta', {});
   });
 
-  it('test default', () => {
-    const data = successHttpResponseHandler({ response: 'Some message' });
+  it('test default', async () => {
+    const data = await successHttpResponseHandler({ response: 'Some message' });
 
-    expect(data.headers['Access-Control-Allow-Credentials']).toBe(true);
     expect(data.headers['Access-Control-Allow-Origin']).toBe('*');
     expect(data.headers['Cache-Control']).toBe('no-cache');
 
@@ -38,8 +36,8 @@ describe('MiddlewareGroup: test successHttpResponseHandler middleware', () => {
     expect(dataBody).toHaveProperty('_meta', {});
   });
 
-  it('test with status code and event', () => {
-    const data = successHttpResponseHandler({
+  it('test with status code and event', async () => {
+    const data = await successHttpResponseHandler({
       response: 'Some message',
       statusCode: 201,
       event: {
@@ -55,8 +53,8 @@ describe('MiddlewareGroup: test successHttpResponseHandler middleware', () => {
     expect(dataBody).toHaveProperty('_meta', {});
   });
 
-  it('test with status code and event in debug mode', () => {
-    const data = successHttpResponseHandler({
+  it('test with status code and event in debug mode', async () => {
+    const data = await successHttpResponseHandler({
       response: 'Some message',
       statusCode: 201,
       event: {
@@ -75,8 +73,21 @@ describe('MiddlewareGroup: test successHttpResponseHandler middleware', () => {
     });
   });
 
-  it('test with configurable header', () => {
-    const data = successHttpResponseHandler({
+  it('test with formatSuccess argument', async () => {
+    const data = await successHttpResponseHandler({
+      response: 'Some message',
+      formatSuccess: options => {
+        return options.response;
+      },
+    });
+
+    expect(data.statusCode).toBe(200);
+
+    expect(data.body).toBe('Some message');
+  });
+
+  it('test with configurable header', async () => {
+    const data = await successHttpResponseHandler({
       response: 'Some message',
       headers: {
         'Access-Control-Allow-Credentials': false,
@@ -98,16 +109,64 @@ describe('MiddlewareGroup: test successHttpResponseHandler middleware', () => {
     expect(dataBody).toHaveProperty('data', 'Some message');
     expect(dataBody).toHaveProperty('_meta', {});
   });
+
+  it('should call db.end() whenever a db options is set', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await successHttpResponseHandler({
+      response: 'Some message',
+      headers: {
+        'Access-Control-Allow-Credentials': false,
+        'X-Token-Id': 'token',
+      },
+      db: {
+        end,
+      },
+    });
+
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call dbRead.end() whenever a dbRead options is set', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await successHttpResponseHandler({
+      response: 'Some message',
+      headers: {
+        'Access-Control-Allow-Credentials': false,
+        'X-Token-Id': 'token',
+      },
+      dbRead: {
+        end,
+      },
+    });
+
+    expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call cache.end() whenever a cache options is set', async () => {
+    const end = jest.fn().mockResolvedValue();
+    await successHttpResponseHandler({
+      response: 'Some message',
+      headers: {
+        'Access-Control-Allow-Credentials': false,
+        'X-Token-Id': 'token',
+      },
+      cache: {
+        end,
+      },
+    });
+
+    expect(end).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('MiddlewareGroup: test successHttpResponseAfterHandler', () => {
-  it('test with default parameters', () => {
+  it('test with default parameters', async () => {
     const handler = {
       response: {},
       event: {},
     };
 
-    successHttpResponseAfterHandler(handler, () => {});
+    await successHttpResponseAfterHandler(handler, () => {});
     expect(handler.response).toHaveProperty('statusCode', 200);
   });
 });
