@@ -1,5 +1,6 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'; // eslint-disable-line import/no-extraneous-dependencies
 import LesgoException from '../exceptions/LesgoException';
+import isOffline from '../utils/isOffline';
 import logger from '../utils/logger';
 
 const FILE = 'Lesgo/services/DynamoDbService';
@@ -21,7 +22,8 @@ export default class DynamoDb {
         { opts }
       );
 
-    this.client = new DocumentClient({ region });
+    // eslint-disable-next-line no-use-before-define
+    this.client = new DocumentClient(this.buildDynamoDbConfig(opts));
   }
 
   async query(
@@ -121,6 +123,20 @@ export default class DynamoDb {
         { err, params }
       );
     }
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  buildDynamoDbConfig(opts) {
+    if (isOffline()) {
+      return {
+        region: 'localhost',
+        accessKeyId: 'MOCK_ACCESS_KEY_ID',
+        secretAccessKey: 'MOCK_SECRET_ACCESS_KEY',
+        endpoint: 'http://localhost:8000',
+      };
+    }
+
+    return { ...opts };
   }
 
   // eslint-disable-next-line class-methods-use-this
